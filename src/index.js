@@ -1,73 +1,108 @@
 import { mapfun } from "ziko/math";
 
-function transformNode(node, currentPath, locale) {
-  const { translations = {}, items } = node;
+function getTranslations(translations, path, locale) {
+  const labels = translations[path] ?? {};
 
-  const label = translations[locale] ?? "";
+  const label = labels[locale] ?? path.split("/").pop();
 
-  const translatedLabels = Object.fromEntries(
-    Object.entries(translations).filter(([lang]) => lang !== locale)
+  const translatedLabels = mapfun(
+    (value, language) => {
+      if (language === locale) return undefined;
+      return value;
+    },
+    labels,
   );
 
-  const starlightItem = {
+  const filteredTranslations = Object.fromEntries(
+    Object.entries(translatedLabels).filter(
+      ([, value]) => value !== undefined,
+    ),
+  );
+
+  return {
     label,
-    ...(Object.keys(translatedLabels).length > 0 && {
-      translations: translatedLabels,
+    ...(Object.keys(filteredTranslations).length > 0 && {
+      translations: filteredTranslations,
     }),
   };
-
-  if (items) {
-    starlightItem.items = mapSidebarItems(items, currentPath, locale);
-  } else {
-    starlightItem.items = [
-      {
-        autogenerate: {
-          directory: currentPath,
-        },
-      },
-    ];
-  }
-
-  return starlightItem;
 }
 
-function mapSidebarItems(structure, parentPath, locale) {
-  const mappedObj = mapfun((val) => val, structure);
+function mapSidebarItems(
+  structure,
+  translations,
+  parentPath,
+  locale,
+) {
+  return Object.entries(structure).map(([name, children]) => {
+    const currentPath = `${parentPath}/${name}`;
 
-  return Object.entries(mappedObj).map(([key, val]) => {
-    const currentPath = `${parentPath}/${key}`;
-    return transformNode(val, currentPath, locale);
+    const item = getTranslations(
+      translations,
+      currentPath,
+      locale,
+    );
+
+    if (Object.keys(children).length > 0) {
+      item.items = mapSidebarItems(
+        children,
+        translations,
+        currentPath,
+        locale,
+      );
+    } else {
+      item.items = [
+        {
+          autogenerate: {
+            directory: currentPath,
+          },
+        },
+      ];
+    }
+
+    return item;
   });
 }
 
 export function createSidebarItems(
   structure,
-  { locale = "en", rootDirectory = "reference" } = {}
+  translations = {},
+  {
+    locale = "en",
+    rootDirectory = "reference",
+  } = {},
 ) {
-  return mapSidebarItems(structure, rootDirectory, locale);
+  return mapSidebarItems(
+    structure,
+    translations,
+    rootDirectory,
+    locale,
+  );
 }
 
-export function createSidebar({
-  label,
+export function createSidebar(
+  structure,
   translations = {},
-  items,
-  locale = "en",
-  rootDirectory = "reference",
-}) {
-  const translatedLabels = Object.fromEntries(
-    Object.entries(translations).filter(([lang]) => lang !== locale)
+  {
+    locale = "en",
+    rootDirectory = "reference",
+  } = {},
+) {
+  const rootTranslations = getTranslations(
+    translations,
+    rootDirectory,
+    locale,
   );
 
   return {
-    label: translations[locale] ?? label,
+    ...rootTranslations,
 
-    ...(Object.keys(translatedLabels).length > 0 && {
-      translations: translatedLabels,
-    }),
-
-    items: createSidebarItems(items, {
-      locale,
-      rootDirectory,
-    }),
+    items: createSidebarItems(
+      structure,
+      translations,
+      {
+        locale,
+        rootDirectory,
+      },
+    ),
   };
 }
