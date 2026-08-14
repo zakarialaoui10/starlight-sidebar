@@ -30,15 +30,15 @@ function createStructure(translations) {
 function getTranslations(
   translations,
   path,
-  locale,
+  defaultLocale,
 ) {
   const labels = translations[path] ?? {};
   const label =
-    labels[locale] ??
+    labels[defaultLocale] ??
     path.split("/").pop();
   const translatedLabels = Object.fromEntries(
     Object.entries(labels).filter(
-      ([language]) => language !== locale,
+      ([language]) => language !== defaultLocale,
     ),
   );
 
@@ -50,7 +50,7 @@ function getTranslations(
   };
 }
 
-function mapSidebarItems(structure, translations, parentPath, locale) {
+function mapSidebarItems(structure, translations, parentPath, defaultLocale) {
   const entries = Object.entries(structure);
   const nodes = entries.map(
     ([name, children]) => ({
@@ -65,7 +65,7 @@ function mapSidebarItems(structure, translations, parentPath, locale) {
       const item = getTranslations(
         translations,
         currentPath,
-        locale,
+        defaultLocale,
       );
       const hasChildren = Object.keys(node.children).length > 0;
       if (hasChildren) {
@@ -73,7 +73,7 @@ function mapSidebarItems(structure, translations, parentPath, locale) {
           node.children,
           translations,
           currentPath,
-          locale,
+          defaultLocale,
         );
       } 
       else {
@@ -88,7 +88,7 @@ function mapSidebarItems(structure, translations, parentPath, locale) {
 export function createSidebar(
   translations,
   {
-    locale = "en",
+    defaultLocale = "en",
     rootDirectory,
   } = {},
 ) {
@@ -102,7 +102,7 @@ export function createSidebar(
   const rootItem = getTranslations(
     translations,
     root,
-    locale,
+    defaultLocale,
   );
 
   return {
@@ -112,7 +112,7 @@ export function createSidebar(
       structure[root] ?? {},
       translations,
       root,
-      locale,
+      defaultLocale,
     ),
   };
 }
@@ -120,7 +120,7 @@ export function createSidebar(
 export function createSidebarItems(
   translations,
   {
-    locale = "en",
+    defaultLocale = "en",
     rootDirectory,
   } = {},
 ) {
@@ -130,6 +130,6 @@ export function createSidebarItems(
     structure[root] ?? {},
     translations,
     root,
-    locale,
+    defaultLocale,
   );
 }

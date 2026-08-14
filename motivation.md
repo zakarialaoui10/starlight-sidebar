@@ -1,17 +1,16 @@
-## Motivation 
+## Motivation
 
-While building the documentation for ZikoJS, I needed a way to organize a large API reference into a deeply nested sidebar while keeping the navigation fully translated.
+While building the documentation for ZikoJS, I needed a better way to organize a growing API reference into a deeply nested sidebar while keeping the navigation fully translated.
 
-The documentation structure started simple:
+The documentation started with a simple structure:
 
-```
+```text
 Reference
 ├── Core
 ├── Wrapper
 └── Server
 ```
-
-But as the ZikoJS API grew, the Core reference became more structured:
+As the ZikoJS API grew, the Core reference became more detailed :
 
 ```
 Reference
@@ -27,7 +26,8 @@ Reference
     └── Events
 ```
 
-I wanted the same structure to work naturally across multiple languages, for example:
+I wanted this same hierarchy to work naturally across multiple languages.
+For example, the English sidebar :
 
 ```
 Reference
@@ -38,7 +38,7 @@ Reference
         └── Utilities
 ```
 
-becoming :
+should become :
 
 ```
 المرجع
@@ -49,9 +49,9 @@ becoming :
         └── الأدوات المساعدة
 ```
 
-Starlight provides excellent support for localized sidebar labels, but defining translations for a deeply nested structure can become repetitive and difficult to maintain. In particular, automatically generated directories make it difficult to control the translation of every level of a nested reference tree.
+Starlight already provides excellent support for localized sidebar labels. However, when working with deeply nested structures, manually defining every level of the sidebar can become verbose and difficult to maintain.
 
-I initially solved this by manually constructing the Starlight sidebar configuration. As the ZikoJS documentation grew, however, this became increasingly verbose:
+I initially built the sidebar manually :
 
 ```js
 {
@@ -71,16 +71,97 @@ I initially solved this by manually constructing the Starlight sidebar configura
 }
 ```
 
-This led to the idea behind `starlight-sidebar`: describe the documentation hierarchy once, using a simple nested structure, and let the utility transform it into the sidebar configuration expected by Starlight.
+As the ZikoJS documentation grew, maintaining this configuration became increasingly repetitive.
 
-The result is a cleaner separation between ***documentation structure*** and ***Starlight's sidebar API***, while making deeply nested and multilingual documentation much easier to maintain.
+I then explored representing the documentation hierarchy separately from the Starlight configuration :
+
+```js
+{
+  core: {
+    ui: {
+      "built-in-components": {},
+      "ui-constructors": {},
+      utilities: {},
+    },
+    math: {},
+    router: {},
+    time: {},
+    hooks: {},
+    events: {},
+  },
+  wrapper: {},
+  server: {},
+}
+```
+
+However, this introduced another structure that had to be maintained alongside the translations.
+
+The current approach simplifies this further by using a flattened translation map as the single source of truth :
+
+```js
+const translations = {
+  reference: {
+    en: "Reference",
+    ar: "المرجع",
+  },
+
+  "reference/core": {
+    en: "Core",
+    ar: "النواة",
+  },
+
+  "reference/core/ui": {
+    en: "UI",
+    ar: "واجهة المستخدم",
+  },
+
+  "reference/core/ui/utilities": {
+    en: "Utilities",
+    ar: "الأدوات المساعدة",
+  },
+};
+```
+
+The path itself describes the hierarchy :
+
+```text
+reference
+└── core
+    └── ui
+        └── utilities
+```
+
+`starlight-sidebar` derives the nested structure from these paths and generates the corresponding Starlight sidebar configuration :
 
 ```
-Documentation structure
-        ↓
-  starlight-sidebar
-        ↓
+Translation map
+       ↓
+starlight-sidebar
+       ↓
+Directory hierarchy
+       ↓
 Starlight sidebar configuration
 ```
 
-Although the utility was initially created for the ZikoJS documentation, the problem is not specific to ZikoJS. Any Astro Starlight project with a large, nested, multilingual documentation structure can benefit from the same approach.
+This allows the documentation structure and its translations to live together without manually maintaining two separate trees.
+
+The utility also supports multiple locales by selecting the requested locale as the primary label while passing the remaining locales to Starlight's translations property.
+
+For example :
+
+```js
+createSidebar(translations, {
+  locale: "en",
+  rootDirectory: "reference",
+});
+```
+
+can generate the appropriate Starlight sidebar while preserving the Arabic translations.
+
+The implementation also makes use of ZikoJS's `mapfun` where appropriate for recursive data transformation. This was a natural fit because the problem involves transforming nested documentation data into another representation.
+
+Although `starlight-sidebar` was originally created while solving a problem in the ZikoJS documentation, the problem itself is not specific to ZikoJS.
+
+Any Astro Starlight project with a large, nested, multilingual documentation structure can benefit from the same approach:
+
+> Define the paths and translations once, and let starlight-sidebar handle the repetitive Starlight sidebar configuration.
