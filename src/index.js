@@ -27,21 +27,14 @@ function createStructure(translations) {
   return structure;
 }
 
-function getTranslations(
-  translations,
-  path,
-  defaultLocale,
-) {
+function getTranslations(translations, path, defaultLocale) {
   const labels = translations[path] ?? {};
-  const label =
-    labels[defaultLocale] ??
-    path.split("/").pop();
+  const label = labels[defaultLocale] ?? path.split("/").pop();
   const translatedLabels = Object.fromEntries(
     Object.entries(labels).filter(
       ([language]) => language !== defaultLocale,
     ),
   );
-
   return {
     label,
     ...(Object.keys(translatedLabels).length > 0 && {
@@ -62,11 +55,7 @@ function mapSidebarItems(structure, translations, parentPath, defaultLocale) {
   return mapfun(
     (node) => {
       const currentPath = `${parentPath}/${node.name}`;
-      const item = getTranslations(
-        translations,
-        currentPath,
-        defaultLocale,
-      );
+      const item = getTranslations(translations, currentPath, defaultLocale);
       const hasChildren = Object.keys(node.children).length > 0;
       if (hasChildren) {
         item.items = mapSidebarItems(
@@ -92,22 +81,15 @@ export function createSidebar(
     rootDirectory,
   } = {},
 ) {
-  const structure =
-    createStructure(translations);
-
-  const root =
-    rootDirectory ??
-    Object.keys(structure)[0];
-
+  const structure = createStructure(translations);
+  const root = rootDirectory ?? Object.keys(structure)[0];
   const rootItem = getTranslations(
     translations,
     root,
     defaultLocale,
   );
-
   return {
     ...rootItem,
-
     items: mapSidebarItems(
       structure[root] ?? {},
       translations,
